@@ -1,0 +1,44 @@
+version: '3'
+services:
+  php-apache:
+    build:
+      context: ./php-apache
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./php-apache/conf/000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./php-apache/cert/semriwing.my.id:/var/imported/ssl/semriwing.my.id
+      - ./www:/var/www/html:z
+    links:
+      - 'database'
+ 
+  database:
+    image: mysql:8.0
+    restart: "always"
+    volumes:
+      - mysql:/var/lib/mysql
+    environment:
+      TZ: ${TZ}
+      MYSQL_ALLOW_EMPTY_PASSWORD: ${MYSQL_ALLOW_EMPTY_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+
+  phpmyadmin:
+    image: phpmyadmin
+    #ports:
+    #  - 8080:80
+    links:
+      - database
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+volumes:
+    mysql:
