@@ -3,6 +3,7 @@ services:
   php-apache:
     build:
       context: ./php-apache
+    restart: "always"
     ports:
       - 80:80
       - 443:443
