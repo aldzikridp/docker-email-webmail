@@ -21,25 +21,67 @@ services:
       - mysql:/var/lib/mysql
     environment:
       TZ: ${TZ}
-      MYSQL_ALLOW_EMPTY_PASSWORD: ${MYSQL_ALLOW_EMPTY_PASSWORD}
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_DATABASE: 'testdb'
 
-  phpmyadmin:
-    image: phpmyadmin
-    #ports:
-    #  - 8080:80
-    links:
-      - database
+  #phpmyadmin:
+  #  image: phpmyadmin
+  #  ports:
+  #    - 8080:80
+  #  links:
+  #    - database
+  #  environment:
+  #    PMA_HOST: database
+  #    PMA_PORT: 3306
+  #    PMA_USER: ${MYSQL_USER}
+  #    PMA_PASSWORD: ${MYSQL_PASSWORD}
+  #    MYSQL_USER: ${MYSQL_USER}
+  #    MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  #    version: '3.8'
+
+  mailserver:
+    image: docker.io/mailserver/docker-mailserver:latest
+    container_name: mailserver
+    restart: "always"
+    hostname: mail
+    # Change this to your domain, it is used for your email accounts (eg: user@example.com):
+    domainname: semriwing.my.id
+    ports:
+      - "25:25"
+      - "587:587"
+      - "143:143"
+      - "465:465"
+      - "993:993"
+    volumes:
+      - ./docker-data/dms/mail-data/:/var/mail/
+      - ./docker-data/dms/mail-state/:/var/mail-state/
+      - ./docker-data/dms/mail-logs/:/var/log/mail/
+      - ./docker-data/dms/config/:/tmp/docker-mailserver/
+      # The "from" path will vary based on where your certs are locally:
+      - ./php-apache/cert/semriwing.my.id/:/tmp/dms/custom-certs/:ro
+      - /etc/localtime:/etc/localtime:ro
     environment:
-      PMA_HOST: database
-      PMA_PORT: 3306
-      PMA_USER: ${MYSQL_USER}
-      PMA_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      - ENABLE_FAIL2BAN=0
+      # Using letsencrypt for SSL/TLS certificates
+      - SSL_TYPE=manual
+      - SSL_CERT_PATH=/tmp/dms/custom-certs/fullchain.pem
+      - SSL_KEY_PATH=/tmp/dms/custom-certs/privkey.pem
+      # Allow sending emails from other docker containers
+      # Beware creating an Open Relay: https://docker-mailserver.github.io/docker-mailserver/edge/config/environment/#permit_docker
+      #- PERMIT_DOCKER=network
+      # All env below are default settings:
+      - ONE_DIR=1
+      - ENABLE_POSTGREY=0
+      - ENABLE_CLAMAV=0
+      - ENABLE_SPAMASSASSIN=0
+      # You may want to enable this: https://docker-mailserver.github.io/docker-mailserver/edge/config/environment/#spoof_protection
+      # See step 8 below, which demonstrates setup with enabled/disabled SPOOF_PROTECTION:
+      - SPOOF_PROTECTION=0
+    cap_add:
+      - NET_ADMIN # For Fail2Ban to work
 
 volumes:
     mysql:
